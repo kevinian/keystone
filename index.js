@@ -188,9 +188,9 @@ Keystone.prototype.get = Keystone.prototype.set;
  */
 
 Keystone.prototype.getPath = function(key, defaultValue) {
-	var pathValue = keystone.get(key) || defaultValue;
-	pathValue = ('string' == typeof pathValue && pathValue.substr(0,1) != path.sep) ? process.cwd() + path.sep + pathValue : pathValue;
-	return pathValue;
+	var path = keystone.get(key) || defaultValue;
+	path = ('string' == typeof path && path.substr(0,1) != '/') ? process.cwd() + '/' + path : path;
+	return path;
 }
 
 
@@ -410,7 +410,7 @@ Keystone.prototype.start = function(onStart) {
 	
 	// Set location of view templates and view engine
 	
-	app.set('views', this.getPath('views') || path.sep + 'views');
+	app.set('views', this.getPath('views') || '/views');
 	app.set('view engine', this.get('view engine'));
 	
 	// Apply locals
@@ -456,7 +456,24 @@ Keystone.prototype.start = function(onStart) {
 	if (this.get('cookie secret')) {
 		app.use(express.cookieParser(this.get('cookie secret')));
 	}
-	app.use(express.session());
+	
+	//Enable mongo for session management
+	
+	if (this.get('session_handler')){
+	        switch(this.get('session_handler').pkg){
+			case 'connect-mongo':
+				var mongo_store = require('connect-mongo')(express);
+				app.use(express.session({
+					store: new mongo_store({
+						url: this.get('session_handler').url
+					}),
+					secret: this.get('session_handler').secret
+				}));
+			break;
+		}
+	} else {
+	        app.use(express.session());
+	}
 	app.use(require('connect-flash')());
 	
 	if (this.get('session') === true) {
@@ -755,8 +772,8 @@ Keystone.prototype.start = function(onStart) {
 
 Keystone.prototype.static = function(app) {
 	
-	app.use('/keystone', require('less-middleware')({ src: __dirname + path.sep + 'public' }));
-	app.use('/keystone', express.static(__dirname + path.sep + 'public'));
+	app.use('/keystone', require('less-middleware')({ src: __dirname + '/public' }));
+	app.use('/keystone', express.static(__dirname + '/public'));
 	
 	return this;
 	
@@ -1129,9 +1146,7 @@ Keystone.prototype.render = function(req, res, view, ext) {
 				cloud_name: keystone.get('cloudinary config').cloud_name,
 				api_key: keystone.get('cloudinary config').api_key,
 				timestamp: cloudinaryUpload.hidden_fields.timestamp,
-				signature: cloudinaryUpload.hidden_fields.signature,
-				prefix: keystone.get('cloudinary prefix') || '',
-				uploader: cloudinary.uploader
+				signature: cloudinaryUpload.hidden_fields.signature
 			};
 			locals.cloudinary_js_config = cloudinary.cloudinary_js_config();
 		} catch(e) {
