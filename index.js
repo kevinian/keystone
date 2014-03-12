@@ -410,7 +410,7 @@ Keystone.prototype.start = function(onStart) {
 	
 	// Set location of view templates and view engine
 	
-	app.set('views', this.getPath('views') || '/views');
+	app.set('views', this.getPath('views') || path.sep + 'views');
 	app.set('view engine', this.get('view engine'));
 	
 	// Apply locals
@@ -456,9 +456,9 @@ Keystone.prototype.start = function(onStart) {
 	if (this.get('cookie secret')) {
 		app.use(express.cookieParser(this.get('cookie secret')));
 	}
-	
-	//Enable mongo for session management
-	
+
+        //Enable mongo for session management
+
 	if (this.get('session_handler')){
 	        switch(this.get('session_handler').pkg){
 			case 'connect-mongo':
@@ -474,6 +474,7 @@ Keystone.prototype.start = function(onStart) {
 	} else {
 	        app.use(express.session());
 	}
+	
 	app.use(require('connect-flash')());
 	
 	if (this.get('session') === true) {
@@ -772,8 +773,8 @@ Keystone.prototype.start = function(onStart) {
 
 Keystone.prototype.static = function(app) {
 	
-	app.use('/keystone', require('less-middleware')({ src: __dirname + '/public' }));
-	app.use('/keystone', express.static(__dirname + '/public'));
+	app.use('/keystone', require('less-middleware')({ src: __dirname + path.sep + 'public' }));
+	app.use('/keystone', express.static(__dirname + path.sep + 'public'));
 	
 	return this;
 	
@@ -1146,7 +1147,9 @@ Keystone.prototype.render = function(req, res, view, ext) {
 				cloud_name: keystone.get('cloudinary config').cloud_name,
 				api_key: keystone.get('cloudinary config').api_key,
 				timestamp: cloudinaryUpload.hidden_fields.timestamp,
-				signature: cloudinaryUpload.hidden_fields.signature
+				signature: cloudinaryUpload.hidden_fields.signature,
+				prefix: keystone.get('cloudinary prefix') || '',
+				uploader: cloudinary.uploader
 			};
 			locals.cloudinary_js_config = cloudinary.cloudinary_js_config();
 		} catch(e) {
